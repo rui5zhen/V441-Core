@@ -825,3 +825,49 @@ class SCDown(nn.Module):
 
     def forward(self, x):
         return self.cv2(self.cv1(x))
+    
+    # --- 在 block.py 文件的最后添加 ---
+
+try:
+    from mamba_ssm import Mamba as MambaSSM
+except ImportError:
+    MambaSSM = None
+
+class Mamba(nn.Module):
+    def __init__(self, c1, c2, n=1):
+        super().__init__()
+        # ⭐ 核心修复：如果输入通道 c1 不等于输出通道 c2，先进行线性投影
+        self.proj = nn.Conv2d(c1, c2, 1) if c1 != c2 else nn.Identity()
+        
+        try:
+            from mamba_ssm import Mamba as MambaSSM
+        except ImportError:
+            MambaSSM = None
+
+        if MambaSSM:
+            # 这里的 LayerNorm 必须使用对齐后的 c2
+            self.mamba = nn.Sequential(*(
+                nn.Sequential(
+                    nn.LayerNorm(c2),
+                    MambaSSM(d_model=c2, d_state=16, d_conv=4, expand=2)
+                ) for _ in range(n)
+            ))
+        else:
+            self.mamba = nn.Identity()
+
+    def forward(self, x):
+        # 1. 先对齐通道 c1 -> c2
+        x = self.proj(x)
+        
+        if isinstance(self.mamba, nn.Identity):
+            return x
+            
+        b, c, h, w = x.shape
+        # 2. 展平空间维度用于 SSM 扫描
+        x_flat = x.flatten(2).transpose(1, 2) # (B, L, C)
+        
+        # 3. 运行 Mamba
+        x_flat = self.mamba(x_flat)
+        
+        # 4. 还原回 2D 特征图
+        return x_flat.transpose(1, 2).reshape(b, c, h, w)

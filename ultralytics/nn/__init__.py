@@ -1,4 +1,4 @@
-# Ultralytics YOLO 🚀, AGPL-3.0 license
+# ultralytics/nn/__init__.py
 
 from .tasks import (
     BaseModel,
@@ -14,6 +14,9 @@ from .tasks import (
     yaml_model_load,
 )
 
+# ⭐ 修复点：从 .modules 导入，而不是从当前目录导入
+from .modules import Mamba 
+
 __all__ = (
     "attempt_load_one_weight",
     "attempt_load_weights",
@@ -26,4 +29,5 @@ __all__ = (
     "SegmentationModel",
     "ClassificationModel",
     "BaseModel",
+    "Mamba", 
 )

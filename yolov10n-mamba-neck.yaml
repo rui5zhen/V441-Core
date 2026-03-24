@@ -1,0 +1,44 @@
+# Ultralytics YOLO 🚀, AGPL-3.0 license
+# YOLOv10n-VSS-Neck: 卷积主干(CNN) + 2D选择性扫描(VSSBlock)颈部
+
+# 1. 全局参数
+nc: 10 
+activation: nn.SiLU
+scales: # [depth, width, max_channels]
+  n: [0.33, 0.25, 1024]
+
+# 2. 卷积 Backbone (0-10层) - 确保小目标像素级感知
+backbone:
+  - [-1, 1, Conv, [64, 3, 2]]  # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]] # 1-P2/4
+  - [-1, 3, C2f, [128, True]]  # 2
+  - [-1, 1, Conv, [256, 3, 2]] # 3-P3/8
+  - [-1, 6, C2f, [256, True]]  # 4-P3/8 (给第15层Concat用)
+  - [-1, 1, Conv, [512, 3, 2]] # 5-P4/16
+  - [-1, 6, C2f, [512, True]]  # 6-P4/16 (给第12层Concat用)
+  - [-1, 1, Conv, [1024, 3, 2]] # 7-P5/32
+  - [-1, 3, C2f, [1024, True]] # 8
+  - [-1, 1, SPPF, [1024, 5]]    # 9
+  - [-1, 1, PSA, [1024]]       # 10-P5/32 (给第21层Concat用)
+
+# 3. VSS-Neck (11-22层) - 建立全局语义关联
+head:
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # 11
+  - [[-1, 6], 1, Concat, [1]]  # 12 (合并 P5-up 和 Backbone-P4)
+  - [-1, 3, VSSBlock, [512]]   # 13-P4/16 (给第18层Concat用)
+
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # 14
+  - [[-1, 4], 1, Concat, [1]]  # 15 (合并 P4-up 和 Backbone-P3)
+  - [-1, 3, VSSBlock, [256]]   # 16-P3/8 (Detect输出口1)
+
+  - [-1, 1, Conv, [256, 3, 2]] # 17
+  - [[-1, 13], 1, Concat, [1]] # 18 (合并 P3-down 和 Head-P4)
+  - [-1, 3, VSSBlock, [512]]   # 19-P4/16 (Detect输出口2)
+
+  - [-1, 1, Conv, [512, 3, 2]] # 20
+  - [[-1, 10], 1, Concat, [1]] # 21 (合并 P4-down 和 Backbone-P5)
+  - [-1, 3, VSSBlock, [1024]]  # 22-P5/32 (Detect输出口3)
+
+  # 4. 检测头 (23层) - 终于对齐了！
+  # 输入分别为第 16层(P3), 19层(P4), 22层(P5)
+  - [[16, 19, 22], 1, v10Detect, [nc]] # 23

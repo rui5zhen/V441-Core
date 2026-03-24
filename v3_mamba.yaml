@@ -1,0 +1,37 @@
+# v3_mamba.yaml 最终纯净版
+nc: 10 
+# 直接把 s 尺度的参数写在这里，跳过 scales 字典的查找
+depth_multiple: 0.33
+width_multiple: 0.50
+max_channels: 1024
+
+backbone:
+  - [-1, 1, Conv, [64, 3, 2]]  
+  - [-1, 1, Conv, [128, 3, 2]] 
+  - [-1, 3, OctoLG_VSSBlock, [128]] 
+  - [-1, 1, SCDown, [256, 3, 2]]    
+  - [-1, 6, OctoLG_VSSBlock, [256]] 
+  - [-1, 1, SCDown, [512, 3, 2]]    
+  - [-1, 6, OctoLG_VSSBlock, [512]] 
+  - [-1, 1, SCDown, [1024, 3, 2]]   
+  - [-1, 3, OctoLG_VSSBlock, [1024]]
+  - [-1, 1, PSA, [1024]]            
+
+head:
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]
+  - [[-1, 6], 1, Concat, [1]]   
+  - [-1, 3, C2fCIB, [512, True]] 
+
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]
+  - [[-1, 4], 1, Concat, [1]]   
+  - [-1, 3, OctoLG_VSSBlock, [256]] 
+
+  - [-1, 1, Conv, [256, 3, 2]]
+  - [[-1, 12], 1, Concat, [1]]  
+  - [-1, 3, OctoLG_VSSBlock, [512]] 
+
+  - [-1, 1, SCDown, [512, 3, 2]]
+  - [[-1, 9], 1, Concat, [1]]   
+  - [-1, 3, OctoLG_VSSBlock, [1024]]
+
+  - [[15, 18, 21], 1, v10Detect, [nc]]

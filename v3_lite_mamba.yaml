@@ -1,0 +1,50 @@
+# V3-Lite-Ghost OctoScan Mamba (4-Head P2-P5 Ultimate Edition)
+nc: 10 
+
+depth_multiple: 0.33
+width_multiple: 0.25
+max_channels: 1024
+
+backbone:
+  - [-1, 1, Conv, [64, 3, 2]] # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]] # 1-P2/4 (保留极高分辨率特征)
+  - [-1, 2, C2f, [128, True]] # 2
+  - [-1, 1, Conv, [256, 3, 2]] # 3-P3/8
+  - [-1, 1, OctoLG_VSSBlock, [128]] # 4 
+  - [-1, 1, Conv, [512, 3, 2]] # 5-P4/16
+  - [-1, 1, OctoLG_VSSBlock, [256]] # 6
+  - [-1, 1, Conv, [1024, 3, 2]] # 7-P5/32
+  - [-1, 1, OctoLG_VSSBlock, [512]] # 8
+  - [-1, 1, SPPF, [512, 5]] # 9
+
+head:
+  # === 自顶向下的 FPN 结构 ===
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]
+  - [[-1, 6], 1, Concat, [1]]
+  - [-1, 2, C2f, [256]] # 12 (P4)
+
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]
+  - [[-1, 4], 1, Concat, [1]]
+  - [-1, 2, C2f, [128]] # 15 (P3)
+
+  # 🔥 [新增] 延伸至 P2-Micro-Head 分支
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]
+  - [[-1, 2], 1, Concat, [1]] # 17 (汲取骨干网第 2 层的 P2 原始特征)
+  - [-1, 2, C2f, [64]] # 18 
+  - [-1, 1, GhostConv, [64, 3, 1]] # 19 🔥 幽灵手术：用极低 FLOPs 生成大量高频轮廓特征！
+
+  # === 自底向上的 PAN 结构 ===
+  - [-1, 1, Conv, [64, 3, 2]] # 20 (从 P2 降采样回 P3)
+  - [[-1, 15], 1, Concat, [1]] # 21
+  - [-1, 2, C2f, [128]] # 22 (P3 head)
+
+  - [-1, 1, Conv, [128, 3, 2]] # 23 (从 P3 降采样回 P4)
+  - [[-1, 12], 1, Concat, [1]] # 24
+  - [-1, 2, C2f, [256]] # 25 (P4 head)
+
+  - [-1, 1, Conv, [256, 3, 2]] # 26 (从 P4 降采样回 P5)
+  - [[-1, 9], 1, Concat, [1]] # 27
+  - [-1, 2, C2f, [512]] # 28 (P5 head)
+
+  # 🚀 最终 4 头检测：[P2-Ghost, P3, P4, P5]
+  - [[19, 22, 25, 28], 1, v10Detect, [nc]] # 29

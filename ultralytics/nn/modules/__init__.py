@@ -16,7 +16,9 @@ Example:
     os.system(f'onnxslim {f} {f} && open {f}') # pip install onnxslim
     ```
 """
-
+from .block import Mamba
+from .mamba_modules import VSSBlock
+from mamba_ssm import Mamba
 from .block import (
     C1,
     C2,
@@ -79,6 +81,9 @@ from .transformer import (
     TransformerEncoderLayer,
     TransformerLayer,
 )
+
+# >>> CHANGED: 从 mamba_modules.py 导入 VSSBlock
+from .mamba_modules import VSSBlock
 
 __all__ = (
     "Conv",
@@ -143,5 +148,7 @@ __all__ = (
     "C2fCIB",
     "SCDown",
     "RepVGGDW",
-    "v10Detect"
+    "v10Detect",
+    "VSSBlock", # >>> CHANGED: 将 VSSBlock 添加到导出列表中
+    "Mamba"
 )

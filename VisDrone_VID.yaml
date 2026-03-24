@@ -1,0 +1,20 @@
+# VisDrone-VID 数据集配置
+path: /home/zhenr2024/datasetstwo/VisDrone-VID-YOLO
+train: /home/zhenr2024/datasetstwo/VisDrone-VID-YOLO/train/images
+val: /home/zhenr2024/datasetstwo/VisDrone-VID-YOLO/val/images
+test: /home/zhenr2024/datasetstwo/VisDrone-VID-YOLO/test-dev/images
+
+# Classes
+names:
+  0: pedestrian
+  1: people
+  2: bicycle
+  3: car
+  4: van
+  5: truck
+  6: tricycle
+  7: awning-tricycle
+  8: bus
+  9: motor
+
+nc: 10

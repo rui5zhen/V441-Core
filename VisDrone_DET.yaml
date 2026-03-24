@@ -1,0 +1,19 @@
+# VisDrone数据集配置
+path: /home/zhenr2024/datasetsone
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: pedestrian
+  1: people
+  2: bicycle
+  3: car
+  4: van
+  5: truck
+  6: tricycle
+  7: awning-tricycle
+  8: bus
+  9: motor
+
+# 不需要download部分，因为我们已经手动处理了

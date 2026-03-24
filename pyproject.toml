@@ -70,16 +70,18 @@ dependencies = [
     "pyyaml>=5.3.1",
     "requests>=2.23.0",
     "scipy>=1.4.1",
-    "torch>=1.8.0",
+    "torch>=2.0.0",      # 4090 建议 2.0 以上版本
     "torchvision>=0.9.0",
-    "tqdm>=4.64.0", # progress bars
-    "psutil", # system utilization
-    "py-cpuinfo", # display CPU info
-    "thop>=0.1.1", # FLOPs computation
+    "tqdm>=4.64.0",
+    "psutil",
+    "py-cpuinfo",
+    "thop>=0.1.1",
     "pandas>=1.1.4",
-    "seaborn>=0.11.0", # plotting
+    "seaborn>=0.11.0",
+    "mamba-ssm==2.3.0",      # 🌟 侦察兵锁定：Mamba 核心
+    "causal-conv1d==1.6.0",  # 🌟 侦察兵锁定：CUDA 加速核
+    "einops>=0.8.0"          # 🌟 侦察兵锁定：维度变换算子
 ]
-
 # Optional dependencies ------------------------------------------------------------------------------------------------
 [project.optional-dependencies]
 dev = [

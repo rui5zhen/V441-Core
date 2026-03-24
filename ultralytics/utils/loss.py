@@ -231,7 +231,30 @@ class v8DetectionLoss:
 
         # Cls loss
         # loss[1] = self.varifocal_loss(pred_scores, target_scores, target_labels) / target_scores_sum  # VFL way
-        loss[1] = self.bce(pred_scores, target_scores.to(dtype)).sum() / target_scores_sum  # BCE
+        # loss[1] = self.bce(pred_scores, target_scores.to(dtype)).sum() / target_scores_sum  # BCE
+        # Cls loss
+        # loss[1] = self.varifocal_loss(pred_scores, target_scores, target_labels) / target_scores_sum  # VFL way
+        
+        # ==================================================================
+        # 🔥 [Expert CA-TAL Injection] 类别感知对齐损失手术注入
+        # ==================================================================
+        # 计算原始的二元交叉熵损失，保留所有的维度 [batch, anchors, num_classes]
+        bce_raw = self.bce(pred_scores, target_scores.to(dtype)) 
+        
+        # 1. 动态生成特权缩放因子矩阵 (针对 VisDrone: 2=bicycle, 7=awning-tricycle, 1=people)
+        class_scaler = torch.ones(self.nc, device=self.device, dtype=dtype)
+        class_scaler[2] = 2.5  # 🚲 bicycle: 漏检痛感放大 2.5 倍
+        class_scaler[7] = 2.0  # 🛺 awning-tricycle: 漏检痛感放大 2.0 倍
+        class_scaler[1] = 1.5  # 🚶 people: 适度加强 1.5 倍
+        
+        # 2. 沿类别通道维度广播相乘
+        # 这一步极其精妙：它会让网络在预测 [2] 号通道时，无论是正样本没预测出来，
+        # 还是背景位置瞎预测了自行车，梯度都会被直接放大 2.5 倍，强制特征极其锐利。
+        bce_weighted = bce_raw * class_scaler.view(1, 1, -1)
+        
+        # 3. 计算加权后的最终分类损失
+        loss[1] = bce_weighted.sum() / target_scores_sum
+        # ==================================================================
 
         # Bbox loss
         if fg_mask.sum():
